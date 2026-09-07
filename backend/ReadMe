@@ -1,0 +1,188 @@
+
+User Profile Service should publish something like:
+
+{
+  "eventId": "550e8400-e29b-41d4-a716-446655440000",
+  "eventType": "USER_REGISTERED",
+  "userId": "65abc123",
+  "username": "mayank",
+  "password": "Password@123",
+  "timestamp": "2026-09-07T05:30:00.000Z"
+}
+
+The Authentication Service consumes it:
+
+Kafka
+   ↓
+userRegistration.consumer.js
+   ↓
+authService.createCredentials()
+   ↓
+bcrypt.hash()
+   ↓
+authRepository.create()
+   ↓
+Auth MongoDB
+====================================
+Login API
+
+Start the service:
+
+npm install
+
+Then:
+
+npm run dev
+
+Request:
+
+POST http://localhost:3002/auth/login
+Content-Type: application/json
+
+Body:
+
+{
+  "username": "mayank",
+  "password": "Password@123"
+}
+
+Successful response:
+
+{
+  "success": true,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "expiresIn": "1h",
+    "user": {
+      "id": "65abc123",
+      "username": "mayank"
+    }
+  }
+}
+
+-----------------------------
+
+Layer responsibilities
+
+This separation is particularly important when explaining the project in a Senior Software Developer interview.
+
+Layer	Responsibility
+routes	URL → controller mapping
+controller	HTTP request/response
+service	Business logic
+repository	Database access
+model	MongoDB schema
+kafka	Kafka producer/consumer
+config	External infrastructure configuration
+utils	Reusable technical utilities
+middleware	Cross-cutting HTTP concerns
+
+The key dependency direction is:
+
+Route
+  ↓
+Controller
+  ↓
+Service
+  ↓
+Repository
+  ↓
+Model
+==================================================
+
+Project structure
+auth-service/
+│
+├── src/
+│   ├── controllers/
+│   │   └── auth.controller.js
+│   │
+│   ├── services/
+│   │   └── auth.service.js
+│   │
+│   ├── repositories/
+│   │   └── auth.repository.js
+│   │
+│   ├── models/
+│   │   └── auth.model.js
+│   │
+│   ├── routes/
+│   │   └── auth.routes.js
+│   │
+│   ├── middleware/
+│   │   └── error.middleware.js
+│   │
+│   ├── kafka/
+│   │   └── userRegistration.consumer.js
+│   │
+│   ├── config/
+│   │   ├── database.js
+│   │   └── kafka.js
+│   │
+│   ├── utils/
+│   │   └── jwt.js
+│   │
+│   └── app.js
+│
+├── tests/
+│   ├── unit/
+│   │   ├── auth.service.test.js
+│   │   └── jwt.test.js
+│   │
+│   └── integration/
+│       └── auth.controller.test.js
+│
+├── .env.example
+├── package.json
+└── Dockerfile
+
+==========================================
+The flow is:
+
+HTTP Request
+    ↓
+Route
+    ↓
+Controller
+    ↓
+Service
+    ↓
+Repository
+    ↓
+Model
+    ↓
+MongoDB
+
+Kafka registration is handled separately:
+
+Kafka
+  ↓
+userRegistration.consumer.js
+  ↓
+Auth Service
+  ↓
+Repository
+  ↓
+MongoDB
+
+For login:
+
+POST /auth/login
+       ↓
+auth.routes.js
+       ↓
+auth.controller.js
+       ↓
+auth.service.js
+       ↓
+auth.repository.js
+       ↓
+auth.model.js
+       ↓
+MongoDB
+       ↓
+bcrypt.compare()
+       ↓
+JWT
+       ↓
+Response
